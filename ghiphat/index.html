@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Thu Phạt Nội Bộ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #fcfaf7; color: #333; }
+        .header-section { 
+            background-color: #b22222; color: white; padding: 40px 0; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px;
+        }
+        .header-section h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; margin: 0; }
+        .card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .card-header { 
+            background-color: #b22222; color: white; border-radius: 20px 20px 0 0 !important;
+            font-weight: bold; font-size: 1.1rem; text-align: center; padding: 15px;
+        }
+        .btn-submit { 
+            background-color: #2d5a27; border: none; color: white; font-weight: bold; 
+            padding: 12px; border-radius: 10px; transition: 0.3s;
+        }
+        .btn-submit:hover { background-color: #1e3d1a; transform: translateY(-2px); }
+        .table-container { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        th { color: #b22222; text-transform: uppercase; font-size: 0.8rem; border-bottom: 2px solid #eee; }
+        .summary-header { color: #2d5a27 !important; }
+        .badge-count { background-color: #ffc107; color: #000; font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+<div class="header-section">
+    <h1>SỔ THU PHẠT</h1>
+    <p>Nơi lưu giữ những khoảnh khắc "lỡ tay" của đồng đội</p>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card mb-4">
+                <div class="card-header">GHI CHÉP TỘI LỖI</div>
+                <div class="card-body p-4">
+                    <form id="penaltyForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Ngày phạt</label>
+                            <input type="date" id="date" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Người bị phạt</label>
+                            <input type="text" id="name" class="form-control" placeholder="Tên thành viên..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Số tiền (VNĐ)</label>
+                            <input type="number" id="amount" class="form-control" placeholder="Ví dụ: 50000" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Lý do</label>
+                            <textarea id="reason" class="form-control" rows="2" placeholder="Lý do là gì nhỉ?" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-submit w-100" id="submitBtn">GỬI PHẠT VÀ CHỜ NHẬU THÔI!</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="table-container">
+                <h4 class="text-center mb-4 fw-bold summary-header">🏆 BẢNG PHONG THẦN</h4>
+                <div class="table-responsive">
+                    <table class="table align-middle text-center">
+                        <thead>
+                            <tr>
+                                <th>Thành viên</th>
+                                <th>Tổng tiền</th>
+                                <th>Số lần</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody">
+                            <tr><td colspan="3">Đang tính toán...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h5 class="text-center mb-4 fw-bold" style="color: #b22222;">CHI TIẾT GHI NHẬN 😅</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Thành viên</th>
+                                <th>Số tiền</th>
+                                <th>Lý do</th>
+                            </tr>
+                        </thead>
+                        <tbody id="penaltyListBody">
+                            <tr><td colspan="4" class="text-center">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. CẤU HÌNH LINK WEBHOOK (THAY BẰNG LINK CỦA BẠN) ---
+    const URL_GHI_PHAT = 'https://n8n.thienstyle.com/webhook/ghi-tien-phat';
+    const URL_LAY_DANH_SACH = 'https://n8n.thienstyle.com/webhook/lay-danh-sach';
+
+    document.getElementById('date').valueAsDate = new Date();
+
+    // --- 2. HÀM TẢI VÀ TỔNG HỢP DỮ LIỆU ---
+    async function loadPenalties() {
+        const tbody = document.getElementById('penaltyListBody');
+        const summaryBody = document.getElementById('summaryTableBody');
+        
+        try {
+            const res = await fetch(URL_LAY_DANH_SACH);
+            const data = await res.json();
+            
+            if (data && data.length > 0) {
+                tbody.innerHTML = '';
+                const summaryData = {}; 
+
+                // Duyệt dữ liệu để vẽ bảng chi tiết và gom nhóm tổng hợp
+                data.slice().reverse().forEach(item => {
+                    const name = item['Người bị phạt'] || 'Ẩn danh';
+                    const amount = Number(item['Số Tiền'] || 0);
+
+                    // Cộng dồn
+                    if (!summaryData[name]) {
+                        summaryData[name] = { total: 0, count: 0 };
+                    }
+                    summaryData[name].total += amount;
+                    summaryData[name].count += 1;
+
+                    // Vẽ bảng chi tiết
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${item['Ngày'] || ''}</td>
+                                 <td class="fw-bold">${name}</td>
+                                 <td class="text-danger fw-bold">${amount.toLocaleString()} đ</td>
+                                 <td class="small text-muted">${item['Lý do'] || ''}</td>`;
+                    tbody.appendChild(tr);
+                });
+
+                // Vẽ bảng Tổng hợp - Sắp xếp ai nộp nhiều nhất lên đầu
+                summaryBody.innerHTML = '';
+                Object.keys(summaryData)
+                    .sort((a, b) => summaryData[b].total - summaryData[a].total)
+                    .forEach(name => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td class="fw-bold text-dark">${name}</td>
+                                     <td class="text-danger fw-bold">${summaryData[name].total.toLocaleString()} đ</td>
+                                     <td><span class="badge badge-count">${summaryData[name].count} lần</span></td>`;
+                        summaryBody.appendChild(tr);
+                    });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Chưa có dữ liệu.</td></tr>';
+                summaryBody.innerHTML = '<tr><td colspan="3" class="text-center">Trống</td></tr>';
+            }
+        } catch (err) {
+            console.error("Lỗi kết nối:", err);
+        }
+    }
+
+    // --- 3. GỬI DỮ LIỆU ---
+    document.getElementById('penaltyForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "ĐANG GỬI...";
+
+        const payload = {
+            date: document.getElementById('date').value,
+            name: document.getElementById('name').value,
+            amount: document.getElementById('amount').value,
+            reason: document.getElementById('reason').value
+        };
+
+        try {
+            const res = await fetch(URL_GHI_PHAT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                Swal.fire({
+                    title: 'CẢM ƠN BỒ ĐÃ "PHẠT"!',
+                    text: 'CHỜ MỘT BUỔI NHẬU HOÀNH TRÁNG THUI!!!',
+                    icon: 'success',
+                    confirmButtonColor: '#2d5a27'
+                });
+                document.getElementById('penaltyForm').reset();
+                document.getElementById('date').valueAsDate = new Date();
+                
+                // Đợi 1.5s để Sheets kịp update rồi load lại bảng tự động
+                setTimeout(loadPenalties, 1500);
+            }
+        } catch (err) {
+            Swal.fire('Lỗi!', 'Kiểm tra lại n8n nhé bồ.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "GỬI PHẠT VÀ CHỜ NHẬU THÔI!";
+        }
+    };
+
+    loadPenalties();
+</script>
+
+</body>
+</html>
