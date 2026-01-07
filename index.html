@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Chi Tiêu Cá Nhân</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff7eb3;
+            --primary-hover: #ff4f99;
+            --danger: #ff3e3e;
+            --warning: #ffbe0b;
+            --bg: #fff0f5;
+            --text: #2d0036;
+            --border: #2d0036;
+            --card-bg: #ffffff;
+        }
+        body { 
+            font-family: 'VT323', monospace; 
+            background-color: var(--bg); 
+            background-image: linear-gradient(90deg, rgba(255,182,193,0.3) 1px, transparent 1px), 
+                              linear-gradient(rgba(255,182,193,0.3) 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; 
+            padding: 20px; 
+            font-size: 22px;
+            color: var(--text);
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border: 3px solid var(--border); 
+            box-shadow: 8px 8px 0px rgba(45, 0, 54, 0.2); 
+            position: relative;
+        }
+        h1, h2, h3 { 
+            text-align: center; 
+            color: var(--text); 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            margin-top: 0;
+        }
+        h1 {
+            text-shadow: 3px 3px 0px var(--primary);
+            font-size: 48px;
+        }
+        
+        /* Form Styles */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 24px; }
+        input, select, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid var(--border); 
+            background: #fff;
+            font-family: 'VT323', monospace;
+            font-size: 22px;
+            box-sizing: border-box; 
+            outline: none;
+        }
+        input:focus, select:focus {
+            background-color: #fff9fc;
+            border-color: var(--primary);
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background-color: var(--primary); 
+            color: white; 
+            border: 2px solid var(--border); 
+            cursor: pointer; 
+            font-size: 26px; 
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            box-shadow: 4px 4px 0px var(--border);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        button:hover { 
+            background-color: var(--primary-hover); 
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px var(--border);
+        }
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px var(--border);
+        }
+        
+        .btn-delete {
+            background-color: var(--danger);
+            padding: 5px 15px;
+            font-size: 20px;
+            width: auto;
+            margin: 0;
+        }
+        .btn-delete:hover {
+            background-color: #ff1f1f;
+        }
+        
+        .btn-edit {
+            background-color: var(--warning);
+            padding: 5px 15px;
+            font-size: 20px;
+            width: auto;
+            margin-right: 5px;
+            color: #2d0036;
+        }
+
+        /* Layout */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; border: 2px solid var(--border); }
+        th, td { padding: 12px; text-align: left; border-bottom: 2px solid var(--border); border-right: 2px solid var(--border); }
+        th { background-color: var(--primary); color: white; text-transform: uppercase; font-size: 24px; }
+        tr:nth-child(even) { background-color: #fff0f5; }
+        
+        /* Budget Alerts */
+        .over-budget { color: var(--danger); font-weight: bold; text-shadow: 1px 1px 0px #000; }
+        .near-budget { color: var(--warning); font-weight: bold; text-shadow: 1px 1px 0px #000; }
+        
+        .hidden { display: none !important; }
+        
+        .summary-card { 
+            background: #fff; 
+            padding: 20px; 
+            border: 2px solid var(--border); 
+            box-shadow: 5px 5px 0px var(--primary);
+            margin-bottom: 20px; 
+            text-align: center; 
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-left: 2px solid var(--border); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border: 2px solid var(--border); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-hover); }
+
+        .chart-container {
+            background: #fff;
+            padding: 20px;
+            border: 2px solid var(--border);
+            box-shadow: 5px 5px 0px var(--primary);
+            height: 300px;
+        }
+        
+        .quote-box {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 2px dashed var(--border);
+            background-color: #fff;
+            color: var(--text);
+            font-size: 24px;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            background-color: #fff;
+            border: 2px solid var(--border);
+            height: 35px;
+            margin-top: 15px;
+            position: relative;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+            border-right: 2px solid var(--border);
+        }
+        .progress-text {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: var(--text); text-shadow: 1px 1px 0 #fff; z-index: 2;
+        }
+
+        /* Celebration Popup */
+        .celebration-popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: #fff;
+            border: 3px solid var(--border);
+            padding: 30px;
+            text-align: center;
+            z-index: 2000;
+            box-shadow: 10px 10px 0px rgba(255, 126, 179, 0.5);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 80%;
+        }
+        .celebration-popup.show { transform: translate(-50%, -50%) scale(1); }
+
+        /* Toast Notification (Thông báo tự lưu) */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 16px;
+            position: fixed;
+            z-index: 3000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 17px;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+        }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        @keyframes fadein {
+            from {bottom: 0; opacity: 0;}
+            to {bottom: 30px; opacity: 1;}
+        }
+        @keyframes fadeout {
+            from {bottom: 30px; opacity: 1;}
+            to {bottom: 0; opacity: 0;}
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Nút Cài đặt -->
+    <button onclick="toggleSettings()" style="position: absolute; top: 20px; right: 20px; width: auto; padding: 5px 10px; font-size: 24px; background: transparent; border: none; box-shadow: none; color: var(--text);" title="Cài đặt n8n & Tiện ích">⚙️</button>
+
+    <h1>Sổ Thu Chi Cá Nhân</h1>
+
+    <div class="quote-box">
+        <p id="daily-quote" style="margin: 0;">Loading...</p>
+    </div>
+
+    <!-- Popup Khen Ngợi -->
+    <div id="celebration-popup" class="celebration-popup">
+        <h2 style="color: var(--primary); font-size: 40px; margin-bottom: 10px;">🎉 TUYỆT VỜI! 🎉</h2>
+        <p style="font-size: 28px;">Bản Hân làm tốt lắm!<br>Sắp thành phú bà rồi! 💰</p>
+    </div>
+
+    <!-- Popup Cảnh Báo Ăn Uống -->
+    <div id="warning-popup" class="celebration-popup" style="border-color: var(--danger); box-shadow: 10px 10px 0px rgba(255, 62, 62, 0.5);">
+        <h2 style="color: var(--danger); font-size: 40px; margin-bottom: 10px;">⚠️ CẢNH BÁO! ⚠️</h2>
+        <p style="font-size: 28px;">Bảo Hân đang ăn khá nhiều rồi!<br>Cần phải GIẢM CÂN và ăn uống HEALTHY lại! 🥗</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">Đã lưu dữ liệu vào trình duyệt</div>
+
+    <!-- Modal Cài đặt -->
+    <div id="settings-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: flex; justify-content: center; align-items: center;">
+        <div style="background: #fff; padding: 20px; border: 3px solid var(--border); max-width: 500px; width: 90%; box-shadow: 8px 8px 0px rgba(45, 0, 54, 0.2);">
+            <h2 style="margin-bottom: 20px;">Cấu Hình Hệ Thống</h2>
+            
+            <div class="form-group">
+                <label style="font-size: 18px;">Webhook URL (Lưu Google Sheet)</label>
+                <input type="text" id="n8n-sheet-url" placeholder="https://n8n.example.com/webhook/...">
+            </div>
+
+            <div style="margin-top: 20px; border-top: 2px dashed var(--border); padding-top: 15px;">
+                <label style="font-size: 18px;">Nhắc nhở hàng ngày</label>
+                <button onclick="createCalendarEvent()" style="background-color: #4285F4; border-color: #2d0036;">📅 Tạo lịch nhắc 21h (Google Calendar)</button>
+                <p style="font-size: 16px; margin-top: 5px;"><i>Bấm để mở Google Calendar và lưu lịch nhắc nhở lặp lại hàng ngày.</i></p>
+            </div>
+
+            <div style="margin-top: 20px; border-top: 2px dashed var(--border); padding-top: 15px;">
+                <label style="font-size: 18px;">Sao lưu & Khôi phục dữ liệu</label>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button onclick="exportDataJSON()" style="background-color: #FF9800; border-color: #2d0036;">📥 Tải Backup</button>
+                    <button onclick="document.getElementById('restore-file').click()" style="background-color: #4CAF50; border-color: #2d0036;">📤 Khôi phục</button>
+                    <input type="file" id="restore-file" style="display: none;" accept=".json" onchange="importDataJSON(this)">
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button onclick="saveSettings()">Lưu Cài Đặt</button>
+                <button onclick="toggleSettings()" style="background-color: #ccc; color: #333;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cài đặt Hạn Mức -->
+    <div id="budget-settings-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: flex; justify-content: center; align-items: center;">
+        <div style="background: #fff; padding: 20px; border: 3px solid var(--border); max-width: 500px; width: 90%; box-shadow: 8px 8px 0px rgba(45, 0, 54, 0.2); max-height: 90vh; overflow-y: auto;">
+            <h2 style="margin-bottom: 20px;">Cài Đặt Hạn Mức</h2>
+            <div id="budget-inputs-container">
+                <!-- Các ô nhập liệu sẽ hiện ở đây -->
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button onclick="saveBudgetSettings()">Lưu Thay Đổi</button>
+                <button onclick="toggleBudgetSettings()" style="background-color: #ccc; color: #333;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng quan -->
+    <div class="grid">
+        <div class="summary-card">
+            <h3>Tổng Thu Nhập</h3>
+            <p id="total-income" style="color: var(--primary); font-size: 32px; margin: 10px 0;">0 đ</p>
+        </div>
+        <div class="summary-card">
+            <h3>Tổng Chi Tiêu</h3>
+            <p id="total-expense" style="color: var(--danger); font-size: 32px; margin: 10px 0;">0 đ</p>
+        </div>
+    </div>
+
+    <!-- Thống kê Trà Sữa (Theo dõi giảm cân) -->
+    <div class="summary-card" style="border-color: var(--warning); background-color: #fffbf0;">
+        <h3>Tổng Chi "Trà Sữa & Cà Phê" 🧋☕</h3>
+        <div style="display: flex; justify-content: space-around; align-items: center;">
+            <div>
+                <p style="margin: 5px 0; font-size: 18px;">Tổng tiền</p>
+                <p id="total-tea" style="color: var(--warning); font-size: 32px; margin: 0; font-weight: bold;">0 đ</p>
+            </div>
+            <div>
+                <p style="margin: 5px 0; font-size: 18px;">Số ly đã uống</p>
+                <p id="tea-count" style="color: var(--text); font-size: 32px; margin: 0; font-weight: bold;">0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Số dư các nguồn -->
+    <div class="summary-card">
+        <h3>Số Dư Các Nguồn Tiền</h3>
+        <div id="source-balances-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <!-- Dữ liệu nguồn tiền sẽ hiện ở đây -->
+            <p>Chưa có dữ liệu</p>
+        </div>
+    </div>
+
+    <!-- Mục tiêu tiết kiệm -->
+    <div class="summary-card">
+        <h3>Mục Tiêu Tiết Kiệm</h3>
+        <div id="goal-display">
+            <div id="goals-list"></div>
+            <button onclick="showGoalForm()" style="margin-top: 10px; width: auto; font-size: 20px; padding: 5px 15px;">+ Thêm mục tiêu mới</button>
+        </div>
+        
+        <form id="goal-form" class="hidden" style="margin-top: 15px; text-align: left;">
+            <div class="form-group">
+                <label>Tên mục tiêu</label> <input type="text" id="goal-name-input" placeholder="Ví dụ: Mua iPhone 15">
+            </div>
+            <div class="form-group">
+                <label>Số tiền cần (VNĐ)</label> <input type="number" id="goal-amount-input" placeholder="Ví dụ: 30000000">
+            </div>
+            <button type="button" onclick="saveGoal()">Thêm Mục Tiêu</button>
+            <button type="button" onclick="hideGoalForm()" style="background-color: #ccc; margin-top: 10px;">Hủy</button>
+        </form>
+    </div>
+
+    <div class="grid">
+        <!-- Form Nhập Liệu -->
+        <div>
+            <h2>Nhập Giao Dịch</h2>
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label>Ngày giao dịch</label>
+                    <input type="date" id="transaction-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Loại giao dịch</label>
+                    <select id="type" onchange="toggleCategory()">
+                        <option value="expense">Chi tiêu</option>
+                        <option value="income">Thu nhập</option>
+                        <option value="transfer">Chuyển khoản (Nội bộ)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Số tiền (VNĐ)</label>
+                    <input type="number" id="amount" required placeholder="Ví dụ: 50000">
+                </div>
+
+                <div class="form-group" id="allocation-group">
+                    <label>Chia đều cho (tháng)</label>
+                    <input type="number" id="allocation-months" placeholder="Nhập số tháng (để trống nếu là 1)" min="1">
+                    <small style="color: #666; font-size: 16px;">Ví dụ: Đóng Wifi 6 tháng thì nhập 6. App sẽ tự chia nhỏ ra các tháng sau.</small>
+                </div>
+
+                <div class="form-group">
+                    <label id="source-label">Nguồn tiền</label>
+                    <input type="text" id="source" list="source-list" placeholder="Chọn nguồn tiền...">
+                    <datalist id="source-list">
+                        <option value="Tiền mặt">
+                        <option value="Ví Momo">
+                        <option value="Túi Thần Tài">
+                        <option value="BIDV">
+                        <option value="LVP">
+                        <option value="Quỹ Nhóm">
+                    </datalist>
+                </div>
+
+                <div class="form-group hidden" id="to-source-group">
+                    <label>Chuyển đến nguồn</label>
+                    <input type="text" id="to-source" list="source-list" placeholder="Chọn nguồn nhận tiền...">
+                </div>
+
+                <div class="form-group">
+                    <label>Mục đích chính</label>
+                    <select id="category" onchange="toggleSubCategory()">
+                        <option value="eating">Ăn uống</option>
+                        <option value="transport">Đi lại</option>
+                        <option value="bills">Hóa đơn (Điện/Nước/Net)</option>
+                        <option value="shopping">Mua sắm</option>
+                        <option value="entertainment">Giải trí</option>
+                        <option value="work">Work phí</option>
+                        <option value="unexpected">Phát sinh</option>
+                        <option value="lending">Chi hộ / Cho vay</option> <!-- Mục mới thêm -->
+                        <option value="other">Khác</option>
+                    </select>
+                </div>
+
+                <!-- Mục con cho Ăn uống -->
+                <div class="form-group hidden" id="sub-category-group">
+                    <label>Chi tiết ăn uống (Để tiết kiệm)</label>
+                    <select id="sub-category">
+                        <option value="breakfast">Ăn sáng</option>
+                        <option value="lunch">Ăn trưa</option>
+                        <option value="dinner">Ăn tối</option>
+                        <option value="coffee">Cà phê</option>
+                        <option value="afternoon_tea">Trà chiều</option>
+                        <option value="night_tea">Trà tối</option>
+                        <option value="other_food">Khác</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Chi tiết cụ thể</label>
+                    <input type="text" id="details" placeholder="Ví dụ: Bún bò, Grab đi làm...">
+                </div>
+
+                <button type="submit" id="submit-btn">Lưu Giao Dịch</button>
+                <button type="button" id="cancel-btn" class="hidden" onclick="cancelEdit()" style="background-color: #ccc; color: #333; margin-top: 10px;">Hủy Bỏ</button>
+            </form>
+        </div>
+
+        <!-- Bảng Ngân Sách -->
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">Ngân Sách Tháng</h2>
+                <button onclick="toggleBudgetSettings()" style="width: auto; padding: 5px 10px; font-size: 20px;">✏️ Sửa hạn mức</button>
+            </div>
+            <p><i>Cảnh báo sẽ hiện đỏ nếu vượt quá hạn mức.</i></p>
+            <table id="budget-table">
+                <thead>
+                    <tr>
+                        <th>Mục đích</th>
+                        <th>Đã chi</th>
+                        <th>Hạn mức (Giả định)</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dữ liệu sẽ được JS thêm vào đây -->
+                </tbody>
+            </table>
+
+            <h2 style="margin-top: 30px;">Biểu Đồ Chi Tiêu</h2>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <label for="chart-month" style="display: inline;">Chọn tháng:</label>
+                <input type="month" id="chart-month" onchange="renderChart()" style="width: auto; display: inline-block;">
+            </div>
+            <div class="chart-container">
+                <canvas id="expense-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lịch sử giao dịch -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; margin-bottom: 15px;">
+        <h2 style="margin: 0;">Lịch Sử Giao Dịch</h2>
+        <button onclick="exportToCSV()" style="width: auto; padding: 5px 15px; font-size: 20px;">Xuất Excel</button>
+        <button onclick="syncToN8n()" style="width: auto; padding: 5px 15px; font-size: 20px; margin-left: 10px; background-color: #25D366;">Lưu n8n</button>
+    </div>
+    <div style="margin-bottom: 15px;">
+        <label style="display: inline-block; width: auto;">Lọc theo:</label>
+        <select id="filter-category" onchange="renderHistory()" style="display: inline-block; width: 200px;">
+            <option value="all">Tất cả</option>
+            <option value="lending">Chi hộ (Cần thu lại)</option>
+            <option value="eating">Ăn uống</option>
+            <option value="transport">Đi lại</option>
+            <option value="bills">Hóa đơn</option>
+            <option value="shopping">Mua sắm</option>
+            <option value="entertainment">Giải trí</option>
+            <option value="work">Work phí</option>
+            <option value="unexpected">Phát sinh</option>
+            <option value="other">Khác</option>
+            <option value="income">Thu nhập</option>
+        </select>
+    </div>
+    <table id="history-table">
+        <thead>
+            <tr>
+                <th>Ngày</th>
+                <th>Loại</th>
+                <th>Mục đích</th>
+                <th>Chi tiết</th>
+                <th>Nguồn</th>
+                <th>Số tiền</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Dữ liệu sẽ được JS thêm vào đây -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Cấu hình danh mục và ngân sách giả định (Bạn có thể sửa số tiền ở đây)
+    const DEFAULT_BUDGET_LIMITS = {
+        'eating': 2000000,
+        'transport': 300000,    // 300k đi lại
+        'bills': 3000000,       // 3 triệu hóa đơn
+        'shopping': 200000,
+        'entertainment': 200000,
+        'work': 500000,
+        'unexpected': 100000,
+        'lending': 0,
+        'other': 500000
+    };
+
+    let BUDGET_LIMITS = JSON.parse(localStorage.getItem('budgetLimits')) || DEFAULT_BUDGET_LIMITS;
+
+    const CATEGORY_NAMES = {
+        'eating': 'Ăn uống',
+        'transport': 'Đi lại',
+        'bills': 'Hóa đơn',
+        'shopping': 'Mua sắm',
+        'entertainment': 'Giải trí',
+        'work': 'Work phí',
+        'unexpected': 'Phát sinh',
+        'lending': 'Chi hộ (Sẽ thu lại)',
+        'other': 'Khác',
+        'income': 'Thu nhập'
+    };
+
+    const SUB_CATEGORY_NAMES = {
+        'breakfast': 'Ăn sáng',
+        'lunch': 'Ăn trưa',
+        'dinner': 'Ăn tối',
+        'coffee': 'Cà phê',
+        'afternoon_tea': 'Trà chiều',
+        'night_tea': 'Trà tối',
+        'other_food': 'Ăn khác'
+    };
+
+    let QUOTES = JSON.parse(localStorage.getItem('customQuotes')) || [
+        "Tiền không mua được hạnh phúc, nhưng không có tiền thì vất vả lắm đấy!",
+        "Hãy làm việc khi người khác còn đang ngủ.",
+        "Tiết kiệm là quốc sách, kiếm tiền là chân ái.",
+        "Đừng để ví tiền của bạn buồn.",
+        "Cố gắng lên, đại gia tương lai!",
+        "Mỗi đồng tiết kiệm được là một đồng kiếm được.",
+        "Đầu tư cho bản thân là khoản đầu tư sinh lời nhất.",
+        "Muốn ngồi ở vị trí không ai ngồi được, phải chịu cảm giác không ai chịu được.",
+        "Làm giàu không khó, quan trọng là phải kiên trì.",
+        "Hôm nay làm việc chăm chỉ, ngày mai tha hồ chi tiêu!",
+        "Kiếm tiền là nghệ thuật, người kiếm tiền là nghệ sĩ.",
+        "Người giàu mua tài sản, người nghèo mua tiêu sản.",
+        "Không quan trọng bạn kiếm được bao nhiêu tiền, quan trọng là bạn giữ được bao nhiêu.",
+        "Tiền bạc là người đầy tớ tốt nhưng là người chủ tồi."
+    ];
+
+    // Khởi tạo dữ liệu từ LocalStorage hoặc mảng rỗng
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let expenseChart = null;
+    let editingTransactionId = null;
+    let savingsGoals = JSON.parse(localStorage.getItem('savingsGoals')) || [];
+    let n8nConfig = JSON.parse(localStorage.getItem('n8nConfig')) || { sheetUrl: '' };
+
+    // Xử lý hiển thị Form
+    function toggleCategory() {
+        const type = document.getElementById('type').value;
+        const categorySelect = document.getElementById('category');
+        const toSourceGroup = document.getElementById('to-source-group');
+        const sourceLabel = document.getElementById('source-label');
+        
+        if (type === 'income') {
+            categorySelect.innerHTML = '<option value="income">Thu nhập</option>';
+            categorySelect.disabled = true;
+            document.getElementById('sub-category-group').classList.add('hidden');
+            toSourceGroup.classList.add('hidden');
+            sourceLabel.innerText = "Nguồn tiền (Nhận vào)";
+        } else if (type === 'transfer') {
+            categorySelect.disabled = true;
+            categorySelect.innerHTML = '<option value="transfer">Chuyển khoản</option>';
+            document.getElementById('sub-category-group').classList.add('hidden');
+            toSourceGroup.classList.remove('hidden');
+            sourceLabel.innerText = "Từ nguồn (Rút ra)";
+        } else {
+            categorySelect.disabled = false;
+            // Reset lại options chi tiêu
+            categorySelect.innerHTML = `
+                <option value="eating">Ăn uống</option>
+                <option value="transport">Đi lại</option>
+                <option value="bills">Hóa đơn</option>
+                <option value="shopping">Mua sắm</option>
+                <option value="entertainment">Giải trí</option>
+                <option value="work">Work phí</option>
+                <option value="unexpected">Phát sinh</option>
+                <option value="lending">Chi hộ / Cho vay</option>
+                <option value="other">Khác</option>
+            `;
+            toggleSubCategory(); // Kiểm tra xem có cần hiện sub-cat không
+            toSourceGroup.classList.add('hidden');
+            sourceLabel.innerText = "Nguồn tiền (Chi ra)";
+        }
+    }
+
+    function toggleSubCategory() {
+        const category = document.getElementById('category').value;
+        const subGroup = document.getElementById('sub-category-group');
+        const subLabel = subGroup.querySelector('label');
+        const subSelect = document.getElementById('sub-category');
+        
+        if (category === 'eating') {
+            subGroup.classList.remove('hidden');
+            subLabel.innerText = 'Chi tiết ăn uống (Để tiết kiệm)';
+            subSelect.innerHTML = `
+                <option value="breakfast">Ăn sáng</option>
+                <option value="lunch">Ăn trưa</option>
+                <option value="dinner">Ăn tối</option>
+                <option value="coffee">Cà phê</option>
+                <option value="afternoon_tea">Trà chiều</option>
+                <option value="night_tea">Trà tối</option>
+                <option value="other_food">Khác</option>
+            `;
+        } else if (category === 'lending') {
+            subGroup.classList.remove('hidden');
+            subLabel.innerText = 'Chi hộ cho mục đích gì?';
+            subSelect.innerHTML = `
+                <option value="eating">Ăn uống</option>
+                <option value="transport">Đi lại</option>
+                <option value="bills">Hóa đơn</option>
+                <option value="shopping">Mua sắm</option>
+                <option value="entertainment">Giải trí</option>
+                <option value="work">Work phí</option>
+                <option value="unexpected">Phát sinh</option>
+                <option value="other">Khác</option>
+            `;
+        } else {
+            subGroup.classList.add('hidden');
+        }
+    }
+
+    // Thêm giao dịch
+    document.getElementById('transaction-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const type = document.getElementById('type').value;
+        let category = document.getElementById('category').value;
+        const amount = parseInt(document.getElementById('amount').value);
+        const source = document.getElementById('source').value;
+        const toSource = document.getElementById('to-source').value;
+        const details = document.getElementById('details').value;
+        let months = parseInt(document.getElementById('allocation-months').value) || 1;
+        
+        // Xử lý ngày tháng
+        const rawDate = document.getElementById('transaction-date').value;
+        const [y, m, d] = rawDate.split('-');
+        const displayDate = `${d}/${m}/${y}`;
+
+        let subCategory = '';
+
+        if (type === 'income') category = 'income';
+        if (type === 'transfer') category = 'transfer';
+        if (category === 'eating') {
+            subCategory = document.getElementById('sub-category').value;
+        }
+
+        if (editingTransactionId) {
+            const index = transactions.findIndex(t => t.id === editingTransactionId);
+            if (index !== -1) {
+                transactions[index] = {
+                    ...transactions[index],
+                    date: displayDate, rawDate, type, category, subCategory, amount, source, toSource, details
+                };
+                // Khi sửa thì không hỗ trợ chia lại tháng để tránh phức tạp
+            }
+            cancelEdit();
+        } else {
+            // Logic chia nhỏ giao dịch
+            if (months < 1) months = 1;
+            const amountPerMonth = Math.round(amount / months);
+
+            for (let i = 0; i < months; i++) {
+                // Tính ngày cho từng kỳ
+                // Lưu ý: Phải xử lý ngày tháng cẩn thận để tránh lỗi nhảy năm
+                const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                dateObj.setMonth(dateObj.getMonth() + i);
+                
+                const newY = dateObj.getFullYear();
+                const newM = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const newD = String(dateObj.getDate()).padStart(2, '0');
+                
+                const iterRawDate = `${newY}-${newM}-${newD}`;
+                const iterDisplayDate = `${newD}/${newM}/${newY}`;
+                
+                let iterDetails = details;
+                if (months > 1) {
+                    iterDetails += ` (Kỳ ${i + 1}/${months})`;
+                }
+
+                const transaction = {
+                    id: Date.now() + i, // Cộng i để ID không bị trùng
+                    date: iterDisplayDate,
+                    rawDate: iterRawDate,
+                    type,
+                    category,
+                    subCategory,
+                    amount: amountPerMonth,
+                    source,
+                    toSource,
+                    details: iterDetails
+                };
+                transactions.push(transaction);
+            }
+
+            this.reset();
+            document.getElementById('transaction-date').value = new Date().toLocaleDateString('en-CA');
+            toggleCategory();
+
+            // Hiệu ứng khi có Thu Nhập
+            if (type === 'income') {
+                // 1. Nổ pháo hoa
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+
+                // 2. Hiện Popup khen ngợi
+                showCelebration();
+            }
+
+            // Logic cảnh báo khi uống trà chiều/tối
+            if (type === 'expense' && (subCategory === 'afternoon_tea' || subCategory === 'night_tea' || subCategory === 'coffee')) {
+                showWarning();
+            }
+        }
+        
+        saveAndRender();
+    });
+
+    // Xóa giao dịch
+    function deleteTransaction(id) {
+        if(confirm('Bạn có chắc muốn xóa?')) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveAndRender();
+        }
+    }
+
+    // Sửa giao dịch
+    function editTransaction(id) {
+        const t = transactions.find(x => x.id === id);
+        if (!t) return;
+
+        editingTransactionId = id;
+
+        // Fill date
+        if (t.rawDate) {
+            document.getElementById('transaction-date').value = t.rawDate;
+        } else {
+            // Convert dd/mm/yyyy to yyyy-mm-dd for input
+            const parts = t.date.split('/');
+            if(parts.length === 3) document.getElementById('transaction-date').value = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+
+        // Ẩn phần chia tháng khi đang sửa (để tránh lỗi logic)
+        document.getElementById('allocation-group').classList.add('hidden');
+
+        document.getElementById('type').value = t.type;
+        toggleCategory(); 
+
+        document.getElementById('amount').value = t.amount;
+        document.getElementById('source').value = t.source;
+        if(t.toSource) document.getElementById('to-source').value = t.toSource;
+        
+        if (t.type === 'expense') {
+            document.getElementById('category').value = t.category;
+            toggleSubCategory();
+            if (t.subCategory) document.getElementById('sub-category').value = t.subCategory;
+        }
+
+        document.getElementById('details').value = t.details;
+
+        document.getElementById('submit-btn').innerText = "Cập Nhật Giao Dịch";
+        document.getElementById('cancel-btn').classList.remove('hidden');
+        
+        document.getElementById('transaction-form').scrollIntoView({behavior: 'smooth'});
+    }
+
+    function cancelEdit() {
+        editingTransactionId = null;
+        document.getElementById('transaction-form').reset();
+        document.getElementById('transaction-date').value = new Date().toLocaleDateString('en-CA');
+        document.getElementById('submit-btn').innerText = "Lưu Giao Dịch";
+        document.getElementById('cancel-btn').classList.add('hidden');
+        document.getElementById('allocation-group').classList.remove('hidden'); // Hiện lại ô chia tháng
+        toggleCategory();
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        renderHistory();
+        renderBudget();
+        renderTotals();
+        renderSourceBalances();
+        renderChart();
+        renderGoal();
+        renderTeaStats();
+        showToast("Đã tự động lưu vào trình duyệt!");
+    }
+
+    function renderHistory() {
+        const filter = document.getElementById('filter-category') ? document.getElementById('filter-category').value : 'all';
+        const tbody = document.querySelector('#history-table tbody');
+        tbody.innerHTML = '';
+
+        // Sắp xếp mới nhất lên đầu
+        const sorted = [...transactions].reverse();
+
+        sorted.forEach(t => {
+            if (filter !== 'all' && t.category !== filter) return;
+
+            let catDisplay = CATEGORY_NAMES[t.category];
+            if (t.type === 'transfer') catDisplay = 'Chuyển khoản';
+            
+            if (t.subCategory) {
+                const subName = (t.category === 'lending') ? CATEGORY_NAMES[t.subCategory] : SUB_CATEGORY_NAMES[t.subCategory];
+                catDisplay += ` (${subName || t.subCategory})`;
+            }
+
+            // Hiển thị màu sắc và nội dung tùy loại
+            let typeText = t.type === 'income' ? 'Thu' : (t.type === 'transfer' ? 'Chuyển' : 'Chi');
+            let typeColor = t.type === 'income' ? 'green' : (t.type === 'transfer' ? 'blue' : 'red');
+            let sourceDisplay = t.type === 'transfer' ? `${t.source} ➔ ${t.toSource}` : t.source;
+
+            const row = `
+                <tr>
+                    <td>${t.date}</td>
+                    <td style="color: ${typeColor}">
+                        ${typeText}
+                    </td>
+                    <td>${catDisplay}</td>
+                    <td>${t.details}</td>
+                    <td>${sourceDisplay}</td>
+                    <td>${t.amount.toLocaleString()} đ</td>
+                    <td>
+                        <button onclick="editTransaction(${t.id})" class="btn-edit">Sửa</button>
+                        <button onclick="deleteTransaction(${t.id})" class="btn-delete">Xóa</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function renderBudget() {
+        const tbody = document.querySelector('#budget-table tbody');
+        tbody.innerHTML = '';
+
+        // Tính tổng chi theo danh mục
+        const spending = {};
+        transactions.forEach(t => {
+            if (t.type === 'expense') {
+                spending[t.category] = (spending[t.category] || 0) + t.amount;
+            }
+        });
+
+        for (const [key, limit] of Object.entries(BUDGET_LIMITS)) {
+            // Hiển thị nếu có limit hoặc đã chi tiêu
+            if (limit === 0 && !spending[key]) continue; 
+
+            const spent = spending[key] || 0;
+            const isOver = limit > 0 && spent > limit;
+            
+            let statusClass = isOver ? 'over-budget' : (limit > 0 && spent > limit * 0.8 ? 'near-budget' : '');
+            let statusText = 'Ổn';
+
+            if (limit > 0 && isOver) {
+                statusText = `Vượt quá ${(spent - limit).toLocaleString()}đ!`;
+            } else if (key === 'lending' && spent > 0) {
+                statusText = 'Chưa thu lại';
+                statusClass = 'over-budget'; // Đánh dấu đỏ để nhớ đòi
+            }
+
+            const row = `
+                <tr>
+                    <td>${CATEGORY_NAMES[key]}</td>
+                    <td class="${statusClass}">${spent.toLocaleString()} đ</td>
+                    <td>${limit > 0 ? limit.toLocaleString() + ' đ' : (key === 'lending' ? 'Cần thu lại' : 'Không giới hạn')}</td>
+                    <td class="${statusClass}">${statusText}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        }
+    }
+
+    function renderTotals() {
+        const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+        document.getElementById('total-income').innerText = income.toLocaleString() + ' đ';
+        document.getElementById('total-expense').innerText = expense.toLocaleString() + ' đ';
+    }
+
+    function renderTeaStats() {
+        let teaTotal = 0;
+        let teaCount = 0;
+        
+        transactions.forEach(t => {
+            if (t.type === 'expense' && (t.subCategory === 'afternoon_tea' || t.subCategory === 'night_tea' || t.subCategory === 'coffee')) {
+                teaTotal += t.amount;
+                teaCount++;
+            }
+        });
+
+        document.getElementById('total-tea').innerText = teaTotal.toLocaleString() + ' đ';
+        document.getElementById('tea-count').innerText = teaCount;
+    }
+
+    function renderSourceBalances() {
+        const balances = {};
+        
+        // Tính toán số dư
+        transactions.forEach(t => {
+            const source = t.source ? t.source.trim() : 'Khác';
+            if (!balances[source]) balances[source] = 0;
+            
+            if (t.type === 'income') {
+                balances[source] += t.amount;
+            } else if (t.type === 'transfer') {
+                // Trừ tiền nguồn chuyển
+                balances[source] -= t.amount;
+                // Cộng tiền nguồn nhận
+                const dest = t.toSource ? t.toSource.trim() : 'Khác';
+                balances[dest] = (balances[dest] || 0) + t.amount;
+            } else {
+                balances[source] -= t.amount;
+            }
+        });
+
+        // Hiển thị ra màn hình
+        const container = document.getElementById('source-balances-container');
+        container.innerHTML = '';
+
+        for (const [source, amount] of Object.entries(balances)) {
+            const color = amount >= 0 ? 'var(--primary)' : 'var(--danger)';
+            const html = `
+                <div style="border: 2px solid var(--border); padding: 10px; background: #fff;">
+                    <div style="font-weight: bold; margin-bottom: 5px;">${source}</div>
+                    <div style="color: ${color}; font-size: 24px;">${amount.toLocaleString()} đ</div>
+                </div>
+            `;
+            container.innerHTML += html;
+        }
+        
+        if (Object.keys(balances).length === 0) {
+            container.innerHTML = '<p>Chưa có dữ liệu</p>';
+        }
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('expense-chart').getContext('2d');
+        const monthInput = document.getElementById('chart-month');
+        
+        // Mặc định chọn tháng hiện tại nếu chưa chọn
+        if (!monthInput.value) {
+            const now = new Date();
+            monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+        const selectedMonth = monthInput.value;
+        
+        // Tính tổng chi theo danh mục
+        const spending = {};
+        transactions.forEach(t => {
+            // Lấy tháng từ rawDate hoặc ID (timestamp)
+            let tMonth;
+            if (t.rawDate) {
+                tMonth = t.rawDate.substring(0, 7);
+            } else {
+                const tDate = new Date(t.id);
+                tMonth = `${tDate.getFullYear()}-${String(tDate.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            if (t.type === 'expense' && tMonth === selectedMonth) {
+                spending[t.category] = (spending[t.category] || 0) + t.amount;
+            }
+        });
+
+        // Chuẩn bị dữ liệu cho Chart
+        const labels = Object.keys(spending).map(key => CATEGORY_NAMES[key]);
+        const data = Object.values(spending);
+        
+        // Palette màu Pixel Art
+        const colors = [
+            '#ff7eb3', '#ffbe0b', '#ff3e3e', '#8338ec', '#3a86ff', 
+            '#fb5607', '#06d6a0', '#ff006e', '#8d99ae'
+        ];
+
+        if (expenseChart) {
+            expenseChart.destroy();
+        }
+
+        expenseChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#2d0036'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { font: { family: "'VT323', monospace", size: 18 }, color: '#2d0036' }
+                    },
+                    tooltip: {
+                        titleFont: { family: "'VT323', monospace" },
+                        bodyFont: { family: "'VT323', monospace" }
+                    }
+                }
+            }
+        });
+    }
+
+    function exportToCSV() {
+        // Tiêu đề cột
+        const headers = ["Ngày", "Loại", "Mục đích", "Chi tiết", "Nguồn", "Đến Nguồn", "Số tiền"];
+        
+        // Dữ liệu dòng
+        const rows = transactions.map(t => {
+            let catDisplay = CATEGORY_NAMES[t.category] || t.category;
+            
+            if (t.subCategory) {
+                const subName = (t.category === 'lending') ? CATEGORY_NAMES[t.subCategory] : SUB_CATEGORY_NAMES[t.subCategory];
+                catDisplay += ` - ${subName || t.subCategory}`;
+            }
+            
+            // Xử lý dữ liệu để không bị lỗi CSV (ví dụ dấu phẩy trong nội dung)
+            return [
+                t.date,
+                t.type === 'income' ? 'Thu nhập' : (t.type === 'transfer' ? 'Chuyển khoản' : 'Chi tiêu'),
+                `"${catDisplay}"`,
+                `"${t.details}"`,
+                t.source,
+                t.toSource || '',
+                t.amount
+            ].join(",");
+        });
+
+        // Thêm BOM (\uFEFF) để Excel đọc đúng tiếng Việt
+        const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+        
+        // Tạo file và tải xuống
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `so-thu-chi-${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function displayRandomQuote() {
+        const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+        document.getElementById('daily-quote').innerText = `"${quote}"`;
+    }
+
+    function showCelebration() {
+        const popup = document.getElementById('celebration-popup');
+        popup.classList.add('show');
+        
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+            popup.classList.remove('show');
+        }, 3000);
+    }
+
+    function showWarning() {
+        const popup = document.getElementById('warning-popup');
+        popup.classList.add('show');
+        
+        // Tự động ẩn sau 4 giây
+        setTimeout(() => {
+            popup.classList.remove('show');
+        }, 4000);
+    }
+
+    // --- Logic n8n & Settings ---
+    function toggleSettings() {
+        const modal = document.getElementById('settings-modal');
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            // Load config
+            document.getElementById('n8n-sheet-url').value = n8nConfig.sheetUrl || '';
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function saveSettings() {
+        n8nConfig.sheetUrl = document.getElementById('n8n-sheet-url').value;
+        localStorage.setItem('n8nConfig', JSON.stringify(n8nConfig));
+        showToast('Đã lưu cài đặt!');
+        toggleSettings();
+    }
+
+    function toggleBudgetSettings() {
+        const modal = document.getElementById('budget-settings-modal');
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            renderBudgetInputs();
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function renderBudgetInputs() {
+        const container = document.getElementById('budget-inputs-container');
+        container.innerHTML = '';
+        
+        for (const [key, value] of Object.entries(BUDGET_LIMITS)) {
+            const label = CATEGORY_NAMES[key] || key;
+            const html = `
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label style="font-size: 18px;">${label}</label>
+                    <input type="number" id="limit-${key}" value="${value}" placeholder="Nhập hạn mức...">
+                </div>
+            `;
+            container.innerHTML += html;
+        }
+    }
+
+    function saveBudgetSettings() {
+        for (const key of Object.keys(BUDGET_LIMITS)) {
+            const input = document.getElementById(`limit-${key}`);
+            if (input) {
+                BUDGET_LIMITS[key] = parseInt(input.value) || 0;
+            }
+        }
+        localStorage.setItem('budgetLimits', JSON.stringify(BUDGET_LIMITS));
+        renderBudget();
+        showToast('Đã cập nhật hạn mức!');
+        toggleBudgetSettings();
+    }
+
+    function syncToN8n() {
+        if (!n8nConfig.sheetUrl) return alert('Vui lòng nhập Webhook URL trong cài đặt!');
+        
+        if(confirm('Bạn muốn gửi toàn bộ dữ liệu lên n8n để lưu vào Google Sheet?')) {
+            // Chuẩn bị dữ liệu đẹp (Tiếng Việt) để lưu vào Sheet
+            const formattedTransactions = transactions.map(t => {
+                let catDisplay = CATEGORY_NAMES[t.category] || t.category;
+                if (t.type === 'transfer') catDisplay = 'Chuyển khoản';
+
+                const subName = (t.category === 'lending') ? CATEGORY_NAMES[t.subCategory] : SUB_CATEGORY_NAMES[t.subCategory];
+
+                return {
+                    id: t.id,
+                    date: t.date,
+                    type: t.type === 'income' ? 'Thu nhập' : (t.type === 'transfer' ? 'Chuyển khoản' : 'Chi tiêu'),
+                    category: catDisplay,
+                    subCategory: subName || t.subCategory || '',
+                    amount: t.amount,
+                    source: t.source,
+                    toSource: t.toSource || '',
+                    details: t.details
+                };
+            });
+
+            fetch(n8nConfig.sheetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transactions: formattedTransactions })
+            })
+            .then(response => {
+                if (response.ok) alert('Đã gửi dữ liệu thành công!');
+                else alert('Có lỗi khi gửi dữ liệu!');
+            })
+            .catch(error => alert('Lỗi kết nối: ' + error));
+        }
+    }
+
+    function exportDataJSON() {
+        const data = {
+            transactions: transactions,
+            savingsGoals: savingsGoals,
+            n8nConfig: n8nConfig,
+            customQuotes: QUOTES,
+            budgetLimits: BUDGET_LIMITS
+        };
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `backup-data-${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function importDataJSON(input) {
+        const file = input.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.transactions) {
+                    transactions = data.transactions;
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                }
+                if (data.savingsGoals) {
+                    savingsGoals = data.savingsGoals;
+                    localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
+                }
+                if (data.n8nConfig) {
+                    n8nConfig = data.n8nConfig;
+                    localStorage.setItem('n8nConfig', JSON.stringify(n8nConfig));
+                }
+                if (data.customQuotes) {
+                    QUOTES = data.customQuotes;
+                    localStorage.setItem('customQuotes', JSON.stringify(QUOTES));
+                }
+                if (data.budgetLimits) {
+                    BUDGET_LIMITS = data.budgetLimits;
+                    localStorage.setItem('budgetLimits', JSON.stringify(BUDGET_LIMITS));
+                }
+                alert("Khôi phục dữ liệu thành công! Trang sẽ tải lại.");
+                location.reload();
+            } catch (err) {
+                alert("Lỗi file backup: " + err);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function createCalendarEvent() {
+        const title = encodeURIComponent("Ghi chép chi tiêu");
+        const details = encodeURIComponent("Đừng quên tổng kết thu chi hôm nay nhé! Cố lên đại gia tương lai.");
+        // Set time to 21:00 today
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 15, 0);
+        
+        const formatDate = (date) => date.toISOString().replace(/-|:|\.\d+/g, '');
+        const dates = `${formatDate(start)}/${formatDate(end)}`;
+        
+        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&recur=RRULE:FREQ=DAILY&sf=true&output=xml`;
+        window.open(url, '_blank');
+    }
+
+    function showToast(message) {
+        const x = document.getElementById("toast");
+        x.innerText = message;
+        x.className = "show";
+        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+    }
+
+    // --- Logic Mục Tiêu Tiết Kiệm ---
+    function renderGoal() {
+        const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+        const currentBalance = income - expense;
+
+        const goalsList = document.getElementById('goals-list');
+        goalsList.innerHTML = '';
+
+        if (savingsGoals.length === 0) {
+            goalsList.innerHTML = `<p style="font-style: italic;">Bạn chưa có mục tiêu nào. Hãy thêm mới!</p>
+                                   <p>Số dư hiện tại: <b>${currentBalance.toLocaleString()} đ</b></p>`;
+            return;
+        }
+
+        // Hiển thị số dư tổng
+        goalsList.innerHTML += `<p style="margin-bottom: 15px;">Số dư khả dụng: <b>${currentBalance.toLocaleString()} đ</b></p>`;
+
+        savingsGoals.forEach((goal, index) => {
+            let percentage = 0;
+            if (currentBalance > 0) {
+                percentage = Math.min(100, (currentBalance / goal.amount) * 100);
+            }
+            
+            const isCompleted = currentBalance >= goal.amount;
+            const barColor = isCompleted ? 'var(--warning)' : 'var(--primary)';
+            const statusText = isCompleted ? 'HOÀN THÀNH!' : `${percentage.toFixed(1)}%`;
+
+            const html = `
+                <div style="margin-bottom: 20px; border-bottom: 2px dashed var(--border); padding-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <div style="font-size: 24px; font-weight: bold;">${goal.name}</div>
+                        <button onclick="deleteGoal(${index})" class="btn-delete" style="font-size: 16px; padding: 2px 8px; width: auto;">Xóa</button>
+                    </div>
+                    <div class="progress-container" style="margin-top: 5px;">
+                        <div class="progress-bar" style="width: ${percentage}%; background-color: ${barColor};"></div>
+                        <div class="progress-text">${statusText}</div>
+                    </div>
+                    <div style="margin-top: 5px; font-size: 18px;">Mục tiêu: ${goal.amount.toLocaleString()} đ</div>
+                </div>
+            `;
+            goalsList.innerHTML += html;
+        });
+    }
+
+    function showGoalForm() {
+        document.getElementById('goal-display').classList.add('hidden');
+        document.getElementById('goal-form').classList.remove('hidden');
+        
+        // Reset form
+        document.getElementById('goal-name-input').value = '';
+        document.getElementById('goal-amount-input').value = '';
+    }
+
+    function hideGoalForm() {
+        document.getElementById('goal-display').classList.remove('hidden');
+        document.getElementById('goal-form').classList.add('hidden');
+    }
+
+    function saveGoal() {
+        const name = document.getElementById('goal-name-input').value;
+        const amount = parseInt(document.getElementById('goal-amount-input').value);
+        if (name && amount > 0) {
+            savingsGoals.push({ name, amount });
+            localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
+            renderGoal();
+            hideGoalForm();
+            showToast("Đã thêm mục tiêu!");
+        } else {
+            alert("Vui lòng nhập tên và số tiền hợp lệ!");
+        }
+    }
+
+    function deleteGoal(index) {
+        if(confirm('Bạn muốn xóa mục tiêu này?')) {
+            savingsGoals.splice(index, 1);
+            localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
+            renderGoal();
+            showToast("Đã xóa mục tiêu!");
+        }
+    }
+
+    // Khởi chạy lần đầu
+    document.getElementById('transaction-date').value = new Date().toLocaleDateString('en-CA');
+    toggleCategory();
+    saveAndRender();
+    displayRandomQuote();
+</script>
+
+</body>
+</html>
